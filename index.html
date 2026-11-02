@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Numerical Methods Root-Finding Studio | Bisection, Secant & Newton</title>
+  <meta name="description" content="Interactive numerical root-finding web application for Bisection, Secant, and Newton-Raphson methods with step-by-step visualization, convergence analytics, and auto-bracket scanning.">
+  <link rel="stylesheet" href="styles.css?v=4.3">
+  <!-- FOUC prevention following modern-web-guidance -->
+  <script>
+    (function() {
+      try {
+        const stored = localStorage.getItem("theme-preference");
+        if (stored === "dark" || stored === "light") {
+          document.querySelector('meta[name="color-scheme"]').content = stored;
+          document.documentElement.setAttribute('data-theme', stored);
+        } else {
+          document.querySelector('meta[name="color-scheme"]').content = "light dark";
+          document.documentElement.setAttribute('data-theme', 'system');
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h4l3 8 4-16 3 8h4"/>
+            <circle cx="16" cy="12" r="2" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>RootFinder Studio <span class="badge version">v4.0 Web</span></h1>
+          <p class="subtitle">Bisection &bull; Secant &bull; Newton &bull; Fixed-Point &bull; Jacobi &bull; Gauss-Seidel</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Preset Quick Picks -->
+        <div class="presets-dropdown">
+          <label for="preset-select" class="sr-only">Load Preset Equation or System</label>
+          <select id="preset-select" class="select-control" aria-label="Load preset example">
+            <option value="">&mdash; Load Example Equation / System &mdash;</option>
+            <optgroup label="Root-Finding (1D Equations)">
+              <option value="cubic">Cubic: x^3 - 7x + 1 = 0</option>
+              <option value="transcendental">Transcendental: x^3 - x - 11 = 0</option>
+              <option value="trig">Trigonometric: cos(x) - x = 0</option>
+              <option value="exp">Exponential: e^x - 3x = 0</option>
+              <option value="poly4">Polynomial: x^4 - 2x^3 - 4x^2 + 4x + 4 = 0</option>
+              <option value="sqrt2">Square Root of 2: x^2 - 2 = 0</option>
+              <option value="fp_cubic">Fixed-Point: x = (x^3 + 1)/7</option>
+              <option value="fp_cos">Fixed-Point: x = cos(x)</option>
+              <option value="fp_exp">Fixed-Point: x = e^(-x)</option>
+            </optgroup>
+            <optgroup label="Linear Systems (Ax = b)">
+              <option value="lin_diag3">3×3 Diagonally Dominant System</option>
+              <option value="lin_inter2">2×2 Intersection System</option>
+              <option value="lin_circuit3">3×3 Circuit Network</option>
+              <option value="lin_struct4">4×4 Structural Grid</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Documentation & Guide Button -->
+        <button id="btn-open-theory" class="btn btn-secondary btn-icon-text" aria-haspopup="dialog" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <path d="M12 8h.01"/>
+          </svg>
+          <span>Theory &amp; Formulas</span>
+        </button>
+
+        <!-- Modern Tri-State Dark Mode Toggle -->
+        <div class="theme-toggle-group" role="radiogroup" aria-label="Color scheme selection">
+          <button type="button" class="theme-btn" data-theme-val="light" title="Light theme" aria-label="Light mode">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+          </button>
+          <button type="button" class="theme-btn" data-theme-val="system" title="System default" aria-label="System theme">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </button>
+          <button type="button" class="theme-btn" data-theme-val="dark" title="Dark theme" aria-label="Dark mode">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Container -->
+  <main class="app-layout">
+    <!-- Left Sidebar: Controls & Inputs -->
+    <aside class="sidebar-panel" aria-label="Solver Inputs and Settings">
+      <form id="solver-form" class="card form-card" novalidate>
+        <div class="card-header">
+          <h2>1. Equation &amp; Parameters</h2>
+        </div>
+
+        <div class="card-body">
+          <!-- Method Selection Tabs -->
+          <div class="form-group">
+            <label class="field-label" id="method-group-label">Select Numerical Method</label>
+            <div class="method-selector" role="tablist" aria-labelledby="method-group-label">
+              <button type="button" role="tab" id="tab-bisection" class="method-tab active" aria-selected="true" data-method="bisection">
+                <span class="method-badge">1</span>
+                <span class="method-title">Bisection</span>
+                <span class="method-meta">Bracket [a, b]</span>
+              </button>
+              <button type="button" role="tab" id="tab-secant" class="method-tab" aria-selected="false" data-method="secant">
+                <span class="method-badge">2</span>
+                <span class="method-title">Secant</span>
+                <span class="method-meta">Guesses x₀, x₁</span>
+              </button>
+              <button type="button" role="tab" id="tab-newton" class="method-tab" aria-selected="false" data-method="newton">
+                <span class="method-badge">3</span>
+                <span class="method-title">Newton</span>
+                <span class="method-meta">Tangent x₀</span>
+              </button>
+              <button type="button" role="tab" id="tab-fixedpoint" class="method-tab" aria-selected="false" data-method="fixedpoint">
+                <span class="method-badge">4</span>
+                <span class="method-title">Fixed Point</span>
+                <span class="method-meta">x = g(x)</span>
+              </button>
+              <button type="button" role="tab" id="tab-jacobi" class="method-tab" aria-selected="false" data-method="jacobi">
+                <span class="method-badge">5</span>
+                <span class="method-title">Jacobi</span>
+                <span class="method-meta">Linear Ax = b</span>
+              </button>
+              <button type="button" role="tab" id="tab-gaussseidel" class="method-tab" aria-selected="false" data-method="gaussseidel">
+                <span class="method-badge">6</span>
+                <span class="method-title">Gauss-Seidel</span>
+                <span class="method-meta">Linear Ax = b</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Function Input f(x) (1D Root Finding) -->
+          <div id="func-input-group" class="form-group">
+            <div class="label-row">
+              <label for="input-func" class="field-label">Function <em>f(x)</em></label>
+              <span class="input-hint">Supports: ^, 2x, sin, cos, exp, ln, etc.</span>
+            </div>
+            <div class="input-with-action">
+              <input type="text" id="input-func" class="text-input code-font" value="x^3 - 7x + 1" placeholder="e.g. x^3 - 7x + 1 or cos(x) - x" required autocomplete="off" spellcheck="false">
+              <button type="button" id="btn-scan-roots" class="btn btn-sm btn-outline" title="Auto-scan function domain [-10, 10] for root brackets using Bolzano sign changes">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <span>Auto-Scan</span>
+              </button>
+            </div>
+            <div id="func-preview" class="math-preview" aria-live="polite">Preview: <em>f(x) = x³ - 7x + 1</em></div>
+          </div>
+
+          <!-- Method Specific Inputs Container -->
+          <!-- Bisection Inputs -->
+          <div id="inputs-bisection" class="method-input-block">
+            <div class="grid-2-col">
+              <div class="form-group">
+                <label for="input-bis-a" class="field-label">Lower Bound <em>(a)</em></label>
+                <input type="number" step="any" id="input-bis-a" class="text-input" value="0" required>
+              </div>
+              <div class="form-group">
+                <label for="input-bis-b" class="field-label">Upper Bound <em>(b)</em></label>
+                <input type="number" step="any" id="input-bis-b" class="text-input" value="1" required>
+              </div>
+            </div>
+            <div id="bolzano-check-badge" class="badge-status success" aria-live="polite">
+              <span>Bolzano: f(0)=1, f(1)=-5 (Sign Change &check;)</span>
+            </div>
+          </div>
+
+          <!-- Secant Inputs -->
+          <div id="inputs-secant" class="method-input-block" style="display: none;">
+            <div class="grid-2-col">
+              <div class="form-group">
+                <label for="input-sec-x0" class="field-label">Initial Guess <em>(x₀)</em></label>
+                <input type="number" step="any" id="input-sec-x0" class="text-input" value="0">
+              </div>
+              <div class="form-group">
+                <label for="input-sec-x1" class="field-label">Initial Guess <em>(x₁)</em></label>
+                <input type="number" step="any" id="input-sec-x1" class="text-input" value="1">
+              </div>
+            </div>
+          </div>
+
+          <!-- Newton-Raphson Inputs -->
+          <div id="inputs-newton" class="method-input-block" style="display: none;">
+            <div class="form-group">
+              <label for="input-newton-x0" class="field-label">Initial Guess <em>(x₀)</em></label>
+              <input type="number" step="any" id="input-newton-x0" class="text-input" value="0.5">
+            </div>
+          </div>
+
+          <!-- Fixed-Point Inputs -->
+          <div id="inputs-fixedpoint" class="method-input-block" style="display: none;">
+            <div class="form-group">
+              <div class="label-row">
+                <label for="input-fixed-gx" class="field-label">Iteration Function <em>g(x)</em> in <em>x = g(x)</em></label>
+                <span class="input-hint">e.g. (x^3 + 1)/7 or cos(x)</span>
+              </div>
+              <input type="text" id="input-fixed-gx" class="text-input code-font" value="(x^3 + 1) / 7" placeholder="e.g. (x^3 + 1) / 7 or cos(x)" autocomplete="off" spellcheck="false">
+              <div id="fixed-gx-preview" class="math-preview">Preview: <em>g(x) = (x³ + 1) / 7</em></div>
+            </div>
+            <div class="form-group">
+              <label for="input-fixed-x0" class="field-label">Initial Guess <em>(x₀)</em></label>
+              <input type="number" step="any" id="input-fixed-x0" class="text-input" value="0.5">
+            </div>
+          </div>
+
+          <!-- Linear System Inputs (Jacobi & Gauss-Seidel) -->
+          <div id="inputs-linear-system" class="method-input-block" style="display: none;">
+            <div class="form-group">
+              <div class="label-row">
+                <label class="field-label">System Dimension <em>(n &times; n)</em></label>
+                <div class="dim-selector" role="group" aria-label="System dimension">
+                  <button type="button" class="dim-pill" data-dim="2">2 &times; 2</button>
+                  <button type="button" class="dim-pill active" data-dim="3">3 &times; 3</button>
+                  <button type="button" class="dim-pill" data-dim="4">4 &times; 4</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="label-row">
+                <label class="field-label">Matrix [A] &bull; Constants [b]</label>
+                <button type="button" id="btn-auto-pivot" class="btn btn-xs btn-outline" title="Rearrange rows to satisfy diagonal dominance (|a_ii| > sum |a_ij|)">
+                  Auto-Pivot
+                </button>
+              </div>
+              <div id="matrix-editor" class="matrix-editor-grid">
+                <!-- Dynamically populated via JS -->
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="field-label">Initial Guess Vector <em>x⁽⁰⁾</em></label>
+              <div id="initial-guess-vector" class="vector-inputs-row">
+                <!-- Dynamically populated via JS -->
+              </div>
+            </div>
+
+            <div id="diagonal-dominance-badge" class="badge-status success" aria-live="polite">
+              <span>Strictly Diagonally Dominant &check; Guaranteed Convergence</span>
+            </div>
+          </div>
+
+          <!-- Solver Convergence Criteria -->
+          <div class="grid-2-col">
+            <div class="form-group">
+              <div class="label-row">
+                <label for="input-tol" class="field-label">Tolerance (&epsilon;<sub>a</sub>)</label>
+              </div>
+              <input type="text" id="input-tol" class="text-input" value="0.0001%" placeholder="0.0001% or 1e-6">
+              <span class="field-help">Stopping rule: &epsilon;<sub>a</sub> &le; tol</span>
+            </div>
+
+            <div class="form-group">
+              <div class="label-row">
+                <label for="input-max-iter" class="field-label">Max Iterations</label>
+              </div>
+              <input type="number" id="input-max-iter" class="text-input" value="100" min="1" max="1000">
+            </div>
+          </div>
+
+          <!-- Optional True Root -->
+          <div class="form-group">
+            <div class="label-row">
+              <label for="input-true-root" class="field-label">Known True Root <em>(optional)</em></label>
+              <span class="input-hint">For exact error E<sub>t</sub>, &epsilon;<sub>t</sub></span>
+            </div>
+            <input type="text" id="input-true-root" class="text-input" placeholder="e.g. 0.14373989 or sqrt(2)">
+          </div>
+
+          <!-- Status Message Area -->
+          <div id="solver-alert" class="alert-box" role="alert" style="display: none;"></div>
+
+          <!-- Primary Run Button -->
+          <div class="form-actions">
+            <button type="submit" id="btn-calculate" class="btn btn-primary btn-large">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              <span>Solve Equation</span>
+            </button>
+            <button type="button" id="btn-compare-all" class="btn btn-accent btn-large" title="Run Bisection, Secant, and Newton side-by-side to compare iterations and convergence">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+              <span>Method Shootout</span>
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Discovered Roots Panel from Auto-Scan -->
+      <div id="scanner-results-card" class="card mt-4" style="display: none;">
+        <div class="card-header">
+          <h3>Domain Scan Results</h3>
+          <button type="button" id="btn-close-scanner" class="btn-icon" aria-label="Close scan results">&times;</button>
+        </div>
+        <div class="card-body">
+          <p class="text-muted text-sm" id="scanner-summary-text">Brackets found in domain:</p>
+          <div id="bracket-pills-list" class="bracket-list"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right Workspace: Visualizer & Results -->
+    <section class="workspace-panel" aria-label="Visualizations and Analysis">
+      <!-- Top Summary Metrics Bar -->
+      <div id="metrics-bar" class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Identified Root (x*)</div>
+          <div class="metric-value font-mono" id="metric-root">&mdash;</div>
+          <div class="metric-sub" id="metric-f-val">f(x*) = &mdash;</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Iterations Required</div>
+          <div class="metric-value" id="metric-iters">&mdash;</div>
+          <div class="metric-sub" id="metric-method-name">Method: &mdash;</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Relative Approx Error (&epsilon;<sub>a</sub>)</div>
+          <div class="metric-value font-mono" id="metric-rel-ea">&mdash;</div>
+          <div class="metric-sub" id="metric-abs-ea">E<sub>a</sub> = &mdash;</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Exact Error (if true root known)</div>
+          <div class="metric-value font-mono" id="metric-exact-err">&mdash;</div>
+          <div class="metric-sub" id="metric-exact-rel">&epsilon;<sub>t</sub> = &mdash;</div>
+        </div>
+      </div>
+
+      <!-- Main Tabs: Visualizer vs Comparison Shootout vs Full Iteration Table -->
+      <div class="workspace-tabs-card card">
+        <div class="card-header tabs-header">
+          <div class="nav-tabs" role="tablist">
+            <button type="button" role="tab" id="view-tab-vis" class="nav-tab active" aria-selected="true" data-view="vis">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3v18h18"/>
+                <path d="M18 9l-5 5-4-4-6 6"/>
+              </svg>
+              <span>Interactive Step Visualizer</span>
+            </button>
+            <button type="button" role="tab" id="view-tab-table" class="nav-tab" aria-selected="false" data-view="table">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="3" y1="15" x2="21" y2="15"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+              </svg>
+              <span>Iteration Table (<span id="table-row-count">0</span> rows)</span>
+            </button>
+            <button type="button" role="tab" id="view-tab-shootout" class="nav-tab" aria-selected="false" data-view="shootout">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"/>
+                <path d="M18 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4"/>
+                <circle cx="8" cy="12" r="2"/>
+              </svg>
+              <span id="tab-shootout-title">Method Shootout</span>
+            </button>
+          </div>
+
+          <!-- Table Actions (visible when table tab is active) -->
+          <div class="tab-actions" id="table-actions-toolbar" style="display: none;">
+            <button type="button" id="btn-copy-table" class="btn btn-sm btn-outline" title="Copy Table as TSV">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span>Copy</span>
+            </button>
+            <button type="button" id="btn-export-csv" class="btn btn-sm btn-outline" title="Download CSV file">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span>CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body view-container">
+          <!-- VIEW 1: STEP VISUALIZER & DUAL CANVASES -->
+          <div id="view-vis" class="view-panel active">
+            <!-- Playback Toolbar -->
+            <div class="playback-bar">
+              <div class="playback-controls">
+                <button type="button" id="btn-step-first" class="btn-ctrl" title="First step (k=1)" aria-label="First Step">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="4" y="5" width="3" height="14"/>
+                    <polygon points="19 5 9 12 19 19 19 5"/>
+                  </svg>
+                </button>
+                <button type="button" id="btn-step-prev" class="btn-ctrl" title="Previous step" aria-label="Previous Step">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="19 5 7 12 19 19 19 5"/>
+                  </svg>
+                </button>
+                <button type="button" id="btn-play-pause" class="btn-ctrl btn-play" title="Play animation" aria-label="Play/Pause">
+                  <svg id="icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  <svg id="icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                    <rect x="6" y="4" width="4" height="16"/>
+                    <rect x="14" y="4" width="4" height="16"/>
+                  </svg>
+                </button>
+                <button type="button" id="btn-step-next" class="btn-ctrl" title="Next step" aria-label="Next Step">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 5 17 12 5 19 5 5"/>
+                  </svg>
+                </button>
+                <button type="button" id="btn-step-last" class="btn-ctrl" title="Final convergence step" aria-label="Last Step">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 5 15 12 5 19 5 5"/>
+                    <rect x="17" y="5" width="3" height="14"/>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Step Scrubber Slider -->
+              <div class="playback-scrubber">
+                <label for="step-slider" class="sr-only">Step iteration slider</label>
+                <input type="range" id="step-slider" min="1" max="1" value="1" class="slider-control">
+                <span class="step-indicator" id="step-badge">Step 1 / 1</span>
+              </div>
+
+              <!-- Speed and Canvas Controls -->
+              <div class="playback-aux">
+                <div class="speed-select-wrapper">
+                  <label for="playback-speed" class="sr-only">Animation speed</label>
+                  <select id="playback-speed" class="select-sm" title="Playback speed">
+                    <option value="2500">0.2x Crawl</option>
+                    <option value="1200">0.5x Slow</option>
+                    <option value="800">0.75x Moderate</option>
+                    <option value="500" selected>1.0x Normal</option>
+                    <option value="350">1.5x Brisk</option>
+                    <option value="220">2.0x Fast</option>
+                    <option value="120">3.0x Very Fast</option>
+                    <option value="60">5.0x Turbo</option>
+                  </select>
+                </div>
+                <!-- Animation & Auto-Zoom Toggles -->
+                <label class="anim-toggle-label" title="Smoothly animate mathematical step transitions and constructions">
+                  <input type="checkbox" id="toggle-anim-steps" checked>
+                  <span class="anim-toggle-text">Animate Steps</span>
+                </label>
+                <label class="anim-toggle-label" title="Automatically zoom graph camera into the active step's region">
+                  <input type="checkbox" id="toggle-auto-zoom" checked>
+                  <span class="anim-toggle-text">Auto-Zoom</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Two-Panel Plot Canvases -->
+            <div class="canvases-container">
+              <!-- Panel 1: Geometric Curve & Iteration Construction -->
+              <div class="canvas-panel" id="geom-canvas-panel">
+                <div class="canvas-header">
+                  <div class="canvas-title-group">
+                    <h4>Geometric Visualizer &bull; <span id="geom-step-label">Current Step</span></h4>
+                  </div>
+                  <!-- Canvas Interactive Toolbar: Pan, Select Zoom, Zoom In/Out, Reset, Fullscreen -->
+                  <div class="canvas-toolbar">
+                    <div class="tool-btn-group" role="group" aria-label="Canvas interaction mode">
+                      <button type="button" id="tool-pan" class="tool-btn" title="Pan Mode: Drag canvas to pan, scroll to zoom, or Shift+drag to box zoom" aria-pressed="false">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+                          <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
+                          <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+                          <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+                        </svg>
+                        <span>Pan</span>
+                      </button>
+                      <button type="button" id="tool-select-zoom" class="tool-btn" title="Select Zoom: Drag a rectangular box to zoom into that region" aria-pressed="false">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 3"/>
+                          <circle cx="11" cy="11" r="3"/>
+                          <line x1="21" y1="21" x2="14" y2="14"/>
+                        </svg>
+                        <span>Select Zoom</span>
+                      </button>
+                      <button type="button" id="tool-auto-zoom" class="tool-btn active" title="Automatic Graph Zooming: Automatically track and zoom into each step's active region" aria-pressed="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="3"/>
+                          <path d="M3 12h3m12 0h3M12 3v3m0 12v3"/>
+                          <circle cx="12" cy="12" r="8" stroke-dasharray="2 2"/>
+                        </svg>
+                        <span>Auto-Zoom</span>
+                      </button>
+                    </div>
+
+                    <div class="zoom-btn-group">
+                      <button type="button" id="btn-zoom-in" class="btn-ctrl-sm" title="Zoom In (+)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="11" cy="11" r="8"/>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                          <line x1="11" y1="8" x2="11" y2="14"/>
+                          <line x1="8" y1="11" x2="14" y2="11"/>
+                        </svg>
+                      </button>
+                      <button type="button" id="btn-zoom-out" class="btn-ctrl-sm" title="Zoom Out (-)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="11" cy="11" r="8"/>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                          <line x1="8" y1="11" x2="14" y2="11"/>
+                        </svg>
+                      </button>
+                      <button type="button" id="btn-reset-view" class="btn-ctrl-sm" title="Reset Initial Framing">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                          <path d="M3 3v5h5"/>
+                        </svg>
+                      </button>
+                      <button type="button" id="btn-span-screen" class="btn-ctrl-sm" title="Span graph window across entire screen width (Collapse/Restore sidebar)" aria-label="Span Screen Width">
+                        <svg id="icon-span-expand" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="15 3 21 3 21 9"/>
+                          <polyline points="9 21 3 21 3 15"/>
+                          <line x1="21" y1="3" x2="14" y2="10"/>
+                          <line x1="3" y1="21" x2="10" y2="14"/>
+                        </svg>
+                        <svg id="icon-span-collapse" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                          <polyline points="4 14 10 14 10 20"/>
+                          <polyline points="20 10 14 10 14 4"/>
+                          <line x1="14" y1="10" x2="21" y2="3"/>
+                          <line x1="3" y1="21" x2="10" y2="14"/>
+                        </svg>
+                      </button>
+                      <button type="button" id="btn-geom-fullscreen" class="btn-ctrl-sm" title="Open Graph Fullscreen" aria-label="Toggle Fullscreen">
+                        <svg id="icon-enter-fullscreen" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                        </svg>
+                        <svg id="icon-exit-fullscreen" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                          <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="canvas-viewport" id="geom-canvas-wrapper">
+                  <canvas id="geom-canvas" width="800" height="420"></canvas>
+                  <div id="canvas-tooltip" class="canvas-tooltip" style="display: none;"></div>
+                  <div id="canvas-selection-box" class="canvas-selection-box" style="display: none;">
+                    <span id="canvas-selection-label" class="selection-box-label"></span>
+                  </div>
+                  <div id="canvas-hint" class="canvas-hint">Drag to pan &bull; Shift+drag to box zoom &bull; Scroll to zoom</div>
+                </div>
+
+                <!-- Dedicated Fullscreen HUD Bar: Playback & Speed Controls -->
+                <div class="fullscreen-hud-bar" id="fullscreen-hud">
+                  <div class="playback-controls">
+                    <button type="button" id="fs-btn-step-first" class="btn-ctrl" title="First step" aria-label="First Step">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="4" y="5" width="3" height="14"/>
+                        <polygon points="19 5 9 12 19 19 19 5"/>
+                      </svg>
+                    </button>
+                    <button type="button" id="fs-btn-step-prev" class="btn-ctrl" title="Previous step" aria-label="Previous Step">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="19 5 7 12 19 19 19 5"/>
+                      </svg>
+                    </button>
+                    <button type="button" id="fs-btn-play-pause" class="btn-ctrl btn-play" title="Play / Pause animation" aria-label="Play/Pause">
+                      <svg id="fs-icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                      </svg>
+                      <svg id="fs-icon-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                        <rect x="6" y="4" width="4" height="16"/>
+                        <rect x="14" y="4" width="4" height="16"/>
+                      </svg>
+                    </button>
+                    <button type="button" id="fs-btn-step-next" class="btn-ctrl" title="Next step" aria-label="Next Step">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 5 17 12 5 19 5 5"/>
+                      </svg>
+                    </button>
+                    <button type="button" id="fs-btn-step-last" class="btn-ctrl" title="Final convergence step" aria-label="Last Step">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 5 15 12 5 19 5 5"/>
+                        <rect x="17" y="5" width="3" height="14"/>
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- Fullscreen Scrubber -->
+                  <div class="playback-scrubber">
+                    <label for="fs-step-slider" class="sr-only">Step iteration slider</label>
+                    <input type="range" id="fs-step-slider" min="1" max="1" value="1" class="slider-control">
+                    <span class="step-indicator" id="fs-step-badge">Step 1 / 1</span>
+                  </div>
+
+                  <!-- Fullscreen Speed and Mode Options -->
+                  <div class="playback-aux">
+                    <div class="speed-select-wrapper">
+                      <label for="fs-playback-speed" class="sr-only">Fullscreen animation speed</label>
+                      <select id="fs-playback-speed" class="select-sm" title="Playback speed in fullscreen">
+                        <option value="2500">0.2x Crawl</option>
+                        <option value="1200">0.5x Slow</option>
+                        <option value="800">0.75x Moderate</option>
+                        <option value="500" selected>1.0x Normal</option>
+                        <option value="350">1.5x Brisk</option>
+                        <option value="220">2.0x Fast</option>
+                        <option value="120">3.0x Very Fast</option>
+                        <option value="60">5.0x Turbo</option>
+                      </select>
+                    </div>
+
+                    <label class="anim-toggle-label" title="Smoothly animate mathematical step transitions and constructions">
+                      <input type="checkbox" id="fs-toggle-anim-steps" checked>
+                      <span class="anim-toggle-text">Animate</span>
+                    </label>
+
+                    <label class="anim-toggle-label" title="Automatically zoom graph camera into the active step's region">
+                      <input type="checkbox" id="fs-toggle-auto-zoom" checked>
+                      <span class="anim-toggle-text">Auto-Zoom</span>
+                    </label>
+
+                    <button type="button" id="btn-fs-exit" class="btn btn-sm btn-outline" title="Exit Fullscreen (Esc)">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                      </svg>
+                      <span>Exit Fullscreen</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Panel 2: Error Trajectory Semi-Log Decay Plot -->
+              <div class="canvas-panel error-panel">
+                <div class="canvas-header">
+                  <h4>Error Trajectory &bull; Semi-Log Decay (&epsilon;<sub>a</sub> vs Tolerance)</h4>
+                  <div class="canvas-legend">
+                    <span class="legend-chip"><span class="legend-color color-error"></span> Relative Error (&epsilon;<sub>a</sub>%)</span>
+                    <span class="legend-chip"><span class="legend-color color-tol"></span> Tolerance Threshold</span>
+                  </div>
+                </div>
+                <div class="canvas-viewport">
+                  <canvas id="error-canvas" width="800" height="420"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Active Step Explanation Banner -->
+            <div id="step-detail-box" class="step-detail-card">
+              <div class="step-detail-title">
+                <span class="badge" id="step-number-tag">Iteration 1</span>
+                <span id="step-action-desc">Evaluating root approximation...</span>
+              </div>
+              <div class="step-detail-content" id="step-detail-math"></div>
+            </div>
+          </div>
+
+          <!-- VIEW 2: FULL TABULAR OUTPUT -->
+          <div id="view-table" class="view-panel" style="display: none;">
+            <div class="table-responsive">
+              <table id="iteration-table" class="data-table">
+                <thead id="iteration-table-head">
+                  <!-- Dynamically injected -->
+                </thead>
+                <tbody id="iteration-table-body">
+                  <!-- Dynamically injected -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- VIEW 3: 3-METHOD SHOOTOUT COMPARISON -->
+          <div id="view-shootout" class="view-panel" style="display: none;">
+            <div class="shootout-summary">
+              <h3>Method Convergence Shootout</h3>
+              <p class="text-muted">Simultaneous execution of Bisection, Secant, and Newton-Raphson methods on <em>f(x)</em>.</p>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="table-responsive mt-3">
+              <table class="data-table comparison-table">
+                <thead>
+                  <tr>
+                    <th>Method</th>
+                    <th>Required Inputs</th>
+                    <th>Iterations</th>
+                    <th>Calculated Root</th>
+                    <th>Final Error (&epsilon;<sub>a</sub>)</th>
+                    <th>Convergence Rate</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="shootout-table-body">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Combined Convergence Chart -->
+            <div class="mt-4">
+              <h4>Convergence Rate Comparison (Log Error vs Iteration)</h4>
+              <div class="canvas-viewport" style="height: 340px;">
+                <canvas id="shootout-canvas" width="800" height="340"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Interactive Theory & Mathematical Formulas Modal Dialog -->
+  <dialog id="theory-dialog" class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <h2>Numerical Methods Handbook &bull; Core Formulas</h2>
+        </div>
+        <button type="button" id="btn-close-theory" class="btn-icon" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="theory-nav">
+          <button type="button" class="theory-tab-btn active" data-theory-tab="theory-bisection">1. Bisection</button>
+          <button type="button" class="theory-tab-btn" data-theory-tab="theory-secant">2. Secant</button>
+          <button type="button" class="theory-tab-btn" data-theory-tab="theory-newton">3. Newton-Raphson</button>
+          <button type="button" class="theory-tab-btn" data-theory-tab="theory-fixedpoint">4. Fixed-Point</button>
+          <button type="button" class="theory-tab-btn" data-theory-tab="theory-jacobi">5. Jacobi Method</button>
+          <button type="button" class="theory-tab-btn" data-theory-tab="theory-gaussseidel">6. Gauss-Seidel</button>
+          <button type="button" class="theory-tab-btn" data-theory-tab="theory-errors">7. 4-Error Suite</button>
+        </div>
+
+        <div class="theory-sections">
+          <!-- Bisection Theory -->
+          <article id="theory-bisection" class="theory-content active">
+            <h3>Bisection Method (Interval Halving)</h3>
+            <p><strong>Foundation:</strong> Grounded in <em>Bolzano's Intermediate Value Theorem</em>. If a real-valued continuous function satisfies <em>f(a) &middot; f(b) &lt; 0</em>, there exists at least one real root <em>r &isin; [a, b]</em>.</p>
+            <div class="formula-card">
+              <div class="formula-title">Midpoint Iteration Formula</div>
+              <div class="formula-math">c<sub>k</sub> = (a<sub>k</sub> + b<sub>k</sub>) / 2</div>
+            </div>
+            <h4>Interval Contraction Rule:</h4>
+            <ul>
+              <li>If <em>f(a) &middot; f(c) &lt; 0</em>, the root lies in the lower half: set <em>b = c</em>.</li>
+              <li>Else if <em>f(b) &middot; f(c) &lt; 0</em>, the root lies in the upper half: set <em>a = c</em>.</li>
+              <li>If <em>f(c) = 0</em>, the exact root is found.</li>
+            </ul>
+            <div class="callout tip">
+              <strong>Convergence Guarantee:</strong> Guaranteed global convergence at a linear rate (order <em>p = 1.0</em>). Each iteration cuts the bracket uncertainty by exactly 50%: &Delta;x<sub>k+1</sub> = &frac12;&thinsp;&Delta;x<sub>k</sub>. The maximum error after <em>k</em> steps is bound by (b &minus; a) / 2<sup>k</sup>.
+            </div>
+          </article>
+
+          <!-- Secant Theory -->
+          <article id="theory-secant" class="theory-content" style="display: none;">
+            <h3>Secant Method (Linear Interpolation)</h3>
+            <p>Eliminates the derivative requirement of Newton-Raphson by approximating the tangent slope with a finite-difference secant chord between two successive estimates <em>x<sub>n&minus;1</sub></em> and <em>x<sub>n</sub></em>.</p>
+            <div class="formula-card">
+              <div class="formula-title">Secant Iteration Formula</div>
+              <div class="formula-math">x<sub>n+1</sub> = x<sub>n</sub> &minus; f(x<sub>n</sub>) &middot; [ (x<sub>n</sub> &minus; x<sub>n&minus;1</sub>) / (f(x<sub>n</sub>) &minus; f(x<sub>n&minus;1</sub>)) ]</div>
+            </div>
+            <div class="callout tip">
+              <strong>Convergence Rate:</strong> Superlinear convergence order <em>p</em> = (1 + &radic;5) / 2 &approx; 1.618 (the Golden Ratio). Converges significantly faster than Bisection without evaluating derivatives.
+            </div>
+          </article>
+
+          <!-- Newton Theory -->
+          <article id="theory-newton" class="theory-content" style="display: none;">
+            <h3>Newton-Raphson Method (Tangent Line)</h3>
+            <p>Constructs the tangent line at (<em>x<sub>n</sub></em>, <em>f(x<sub>n</sub>)</em>) with first derivative slope <em>f'(x<sub>n</sub>)</em> and follows it to its x-axis intercept to produce the next approximation.</p>
+            <div class="formula-card">
+              <div class="formula-title">Newton-Raphson Iteration Formula</div>
+              <div class="formula-math">x<sub>n+1</sub> = x<sub>n</sub> &minus; [ f(x<sub>n</sub>) / f'(x<sub>n</sub>) ]</div>
+            </div>
+            <p>In this application, numerical derivatives <em>f'(x)</em> are evaluated using centered finite differences with high precision:</p>
+            <div class="formula-card">
+              <div class="formula-title">Central Difference Derivative</div>
+              <div class="formula-math">f'(x) &approx; [ f(x + h) &minus; f(x &minus; h) ] / (2h), &nbsp; where h = 10<sup>&minus;7</sup></div>
+            </div>
+            <div class="callout tip">
+              <strong>Convergence Rate:</strong> Quadratic order (<em>p = 2.0</em>). The number of correct decimal places doubles every single iteration near simple roots.
+            </div>
+          </article>
+
+          <!-- Fixed-Point Theory -->
+          <article id="theory-fixedpoint" class="theory-content" style="display: none;">
+            <h3>Fixed-Point Iteration (x = g(x))</h3>
+            <p>Transforms the non-linear equation <em>f(x) = 0</em> into the equivalent fixed-point relation <em>x = g(x)</em>, producing successive approximations through recursive evaluation <em>x<sub>k+1</sub> = g(x<sub>k</sub>)</em>.</p>
+            <div class="formula-card">
+              <div class="formula-title">Successive Substitution Formula</div>
+              <div class="formula-math">x<sub>k+1</sub> = g(x<sub>k</sub>)</div>
+            </div>
+            <h4>Convergence Condition &amp; Cobweb Geometry:</h4>
+            <ul>
+              <li><strong>Contraction Mapping Theorem:</strong> Convergence to fixed point <em>x*</em> is guaranteed if |<em>g'(x)</em>| &lt; 1 in an interval containing <em>x*</em>.</li>
+              <li>If |<em>g'(x*)</em>| &gt; 1, iterations spiral or step outward and diverge.</li>
+              <li>Geometrically visualized as a <em>cobweb/staircase diagram</em> bouncing between the iteration curve <em>y = g(x)</em> and the 45&deg; identity line <em>y = x</em>.</li>
+            </ul>
+            <div class="callout tip">
+              <strong>Convergence Rate:</strong> Linear order (<em>p = 1.0</em>) with asymptotic error constant <em>C</em> = |<em>g'(x*)</em>|.
+            </div>
+          </article>
+
+          <!-- Jacobi Theory -->
+          <article id="theory-jacobi" class="theory-content" style="display: none;">
+            <h3>Jacobi Method (Simultaneous Displacements)</h3>
+            <p>An iterative algorithm for solving square linear systems <strong>A</strong><strong>x</strong> = <strong>b</strong>. In each step, every coordinate is updated simultaneously using strictly values from the previous iteration vector.</p>
+            <div class="formula-card">
+              <div class="formula-title">Component-wise Iteration Formula</div>
+              <div class="formula-math">x<sub>i</sub><sup>(k+1)</sup> = [ b<sub>i</sub> &minus; &sum;<sub>j &ne; i</sub> a<sub>ij</sub>&thinsp;x<sub>j</sub><sup>(k)</sup> ] / a<sub>ii</sub></div>
+            </div>
+            <h4>Matrix Splitting Formulation:</h4>
+            <p>Splitting <strong>A</strong> = <strong>D</strong> &minus; <strong>L</strong> &minus; <strong>U</strong> into diagonal, strictly lower, and strictly upper parts:</p>
+            <div class="formula-card">
+              <div class="formula-title">Matrix Iteration Equation</div>
+              <div class="formula-math"><strong>x</strong><sup>(k+1)</sup> = <strong>D</strong><sup>&minus;1</sup>(<strong>L</strong> + <strong>U</strong>)<strong>x</strong><sup>(k)</sup> + <strong>D</strong><sup>&minus;1</sup><strong>b</strong> &nbsp;=&nbsp; <strong>T</strong><sub>J</sub>&thinsp;<strong>x</strong><sup>(k)</sup> + <strong>c</strong><sub>J</sub></div>
+            </div>
+            <div class="callout tip">
+              <strong>Convergence Guarantee:</strong> Guaranteed to converge for any initial guess <strong>x</strong><sup>(0)</sup> if matrix <strong>A</strong> is <em>strictly diagonally dominant</em>: |<em>a<sub>ii</sub></em>| &gt; &sum;<sub>j &ne; i</sub> |<em>a<sub>ij</sub></em>| for all rows <em>i</em>.
+            </div>
+          </article>
+
+          <!-- Gauss-Seidel Theory -->
+          <article id="theory-gaussseidel" class="theory-content" style="display: none;">
+            <h3>Gauss-Seidel Method (Successive Displacements)</h3>
+            <p>Accelerates Jacobi iteration by immediately utilizing the newly updated components <em>x<sub>j</sub><sup>(k+1)</sup></em> (for <em>j &lt; i</em>) within the current iteration step rather than waiting for the next cycle.</p>
+            <div class="formula-card">
+              <div class="formula-title">Successive Component Update Formula</div>
+              <div class="formula-math">x<sub>i</sub><sup>(k+1)</sup> = [ b<sub>i</sub> &minus; &sum;<sub>j &lt; i</sub> a<sub>ij</sub>&thinsp;x<sub>j</sub><sup>(k+1)</sup> &minus; &sum;<sub>j &gt; i</sub> a<sub>ij</sub>&thinsp;x<sub>j</sub><sup>(k)</sup> ] / a<sub>ii</sub></div>
+            </div>
+            <h4>Matrix Splitting Formulation:</h4>
+            <p>Splitting <strong>A</strong> = <strong>D</strong> &minus; <strong>L</strong> &minus; <strong>U</strong> gives the triangular system (<strong>D</strong> &minus; <strong>L</strong>)<strong>x</strong><sup>(k+1)</sup> = <strong>U</strong><strong>x</strong><sup>(k)</sup> + <strong>b</strong>:</p>
+            <div class="formula-card">
+              <div class="formula-title">Matrix Iteration Equation</div>
+              <div class="formula-math"><strong>x</strong><sup>(k+1)</sup> = (<strong>D</strong> &minus; <strong>L</strong>)<sup>&minus;1</sup><strong>U</strong><strong>x</strong><sup>(k)</sup> + (<strong>D</strong> &minus; <strong>L</strong>)<sup>&minus;1</sup><strong>b</strong> &nbsp;=&nbsp; <strong>T</strong><sub>GS</sub>&thinsp;<strong>x</strong><sup>(k)</sup> + <strong>c</strong><sub>GS</sub></div>
+            </div>
+            <div class="callout tip">
+              <strong>Convergence Rate:</strong> Guaranteed to converge for strictly diagonally dominant or symmetric positive-definite matrices. The spectral radius satisfies &rho;(<strong>T</strong><sub>GS</sub>) &approx; [&rho;(<strong>T</strong><sub>J</sub>)]<sup>2</sup>, converging approximately <strong>twice as fast</strong> as Jacobi.
+            </div>
+          </article>
+
+          <!-- Errors Theory -->
+          <article id="theory-errors" class="theory-content" style="display: none;">
+            <h3>The Unified 4-Error Suite</h3>
+            <p>Rigorous error monitoring across both 1D root-finding and multi-variable linear systems:</p>
+            <div class="error-grid">
+              <div class="error-item">
+                <h4>1. Relative Approximate Error (&epsilon;<sub>a</sub>)</h4>
+                <div class="formula-math">&epsilon;<sub>a</sub> = | (x<sub>new</sub> &minus; x<sub>old</sub>) / x<sub>new</sub> | &times; 100%</div>
+                <p><strong>Primary Stopping Rule:</strong> Iterations terminate as soon as &epsilon;<sub>a</sub> &le; tol. For vector systems: &epsilon;<sub>a,max</sub> = max<sub>i</sub> | (x<sub>i</sub><sup>(k)</sup> &minus; x<sub>i</sub><sup>(k&minus;1)</sup>) / x<sub>i</sub><sup>(k)</sup> | &times; 100%.</p>
+              </div>
+
+              <div class="error-item">
+                <h4>2. Absolute Approximate Error (E<sub>a</sub>)</h4>
+                <div class="formula-math">E<sub>a</sub> = | x<sub>new</sub> &minus; x<sub>old</sub> |</div>
+                <p>Quantifies raw displacement between successive steps along the coordinate axis. For vectors: &Delta;x = || <strong>x</strong><sup>(k)</sup> &minus; <strong>x</strong><sup>(k&minus;1)</sup> ||<sub>&infin;</sub>.</p>
+              </div>
+
+              <div class="error-item">
+                <h4>3. Absolute Exact Error (E<sub>t</sub>)</h4>
+                <div class="formula-math">E<sub>t</sub> = | x<sub>true</sub> &minus; x<sub>approx</sub> |</div>
+                <p>Theoretical benchmark computed when analytical or high-precision true root is provided.</p>
+              </div>
+
+              <div class="error-item">
+                <h4>4. Relative Exact Error (&epsilon;<sub>t</sub>)</h4>
+                <div class="formula-math">&epsilon;<sub>t</sub> = | (x<sub>true</sub> &minus; x<sub>approx</sub>) / x<sub>true</sub> | &times; 100%</div>
+                <p>True percentage deviation from the ground truth answer.</p>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="btn-theory-done">Close Guide</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Load Application JavaScript -->
+  <script src="app.js?v=4.5"></script>
+</body>
+</html>
